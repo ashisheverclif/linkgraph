@@ -1,58 +1,91 @@
-Before building anything, you must follow this workflow:
+# CLAUDE.md
 
-STAGE 1 — CLARIFY (always first)
-Ask me these questions before writing a single line of code:
-- What is the core use case and end goal?
-- What are the inputs and expected outputs?
-- Which AI model / API will be used and why?
-- What is the evaluation method (how do we know it works)?
-- Any constraints: latency, cost, privacy, existing stack?
-- What data is available?
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-STAGE 2 — ROADMAP
-After I answer, write a numbered project roadmap with:
-- Milestones and their order
-- Tech stack with reasons for each choice
-- Data pipeline overview
-- Evaluation strategy
-- Deployment plan (even if simple)
+## Workflow Rules
 
-STAGE 3 — EXECUTION PLAN
-List every function you plan to build. For each one:
-- Function name
-- What it does (1 sentence)
-- Inputs and outputs
-- Dependencies (which other functions it calls)
+Before building anything, follow this staged workflow (from Claude.md):
 
-Wait for my approval before proceeding.
+- **Stage 1 — Clarify**: Ask about use case, inputs/outputs, AI model, evaluation, constraints, data
+- **Stage 2 — Roadmap**: Milestones, tech stack with reasons, data pipeline, evaluation, deployment
+- **Stage 3 — Execution Plan**: List every function (name, purpose, I/O, dependencies) — wait for approval
+- **Stage 4 — Build fn by fn**: One function at a time; explain what, why, how to verify, where reused
+- **Stage 5 — Interview Docs**: Design decisions, Gen AI components, prompt engineering, error handling, scaling
 
-STAGE 4 — BUILD fn by fn
-Build ONE function at a time. For each function, after writing the code, provide:
-1. What this function does
-2. Why it was built this way (design decision)
-3. What prompt tuning / fine-tuning was applied and why (e.g. temperature, system prompt wording, few-shot examples)
-4. How to verify the output is correct (test case or expected output)
-5. Where else in the project this function is reused (if anywhere, use function calling — never duplicate logic)
-
-Do NOT move to the next function until I confirm.
-
-STAGE 5 — INTERVIEW DOCUMENTATION
-After the full project is built, generate an interview Q&A document covering:
-- Why each major design decision was made
-- How each Gen AI component works
-- What prompt engineering techniques were applied
-- How hallucinations / errors are handled
-- How you would scale or improve this
+**Debugging rules**: Never abandon a working approach on first failure. Give ONE best solution. Do not change the plan mid-way. Cross-verify before answering.
 
 ---
 
-DEBUGGING & PROBLEM SOLVING RULES (always follow these)
+## Development Commands
 
-- When you suggest a solution and it fails, do NOT immediately abandon it and switch to a different approach. First exhaust all debugging options for the current approach.
-- If I report an error, help me fix it or give an alternative path to the SAME solution — never jump to a completely different solution.
-- If you are unsure whether something will work, say so upfront before I implement it.
-- Always tell me the ONE best way to do something. Do not give me multiple options unless I explicitly ask. Pick the best one and commit to it.
-- When I am implementing something step by step, do not change the overall plan mid-way. Finish the current plan first.
-- If your method causes an error that breaks something: stop, ask me what the error is, ask for requirements like a screenshot or error log, fix it, then explain what happened, why it broke, and how we fixed it.
-- Never give up on a working solution just because one step had an access issue. Find another path to the same destination.
-- Before giving any answer first cross verify yourself whether it is correct or not, then only give the result
+```bash
+# Activate virtualenv (always required first)
+source venv/bin/activate
+
+# Run dev server (use 8001 if 8000 is busy)
+python manage.py runserver 8001
+
+# Apply migrations
+python manage.py migrate
+
+# Open Django shell for pipeline testing
+python manage.py shell
+```
+
+## Architecture
+
+Django backend API with no frontend — consumed by an external Everclif website (`/Users/ashish/Downloads/graphlive/index.html`) via `POST /api/generate/`.
+
+**Request/response flow:**
+```
+External frontend (index.html)
+  → POST /api/generate/ { sitemap_url }
+  → fetch_sitemap()      # parses sitemap XML, max 100 URLs
+  → categorize_urls()    # buckets URLs into blog/features/compare/solutions by path pattern
+  → extract_all_links()  # visits each page (threaded, 10 workers), strips nav/header/footer
+  → build_graph_data()   # produces D3-compatible { nodes[], links[] }
+  → generate_html()      # injects data into self-contained D3.js HTML string
+  → JSON { html, stats }
+```
+
+**Key design decisions:**
+- CORS is handled manually via `cors_response()` in `views.py` — every response must be wrapped with it. Do not rely on `django-cors-headers` middleware (it failed on Render free tier).
+- API is `@csrf_exempt` because it is called cross-origin from the Everclif frontend.
+- `generate_html()` returns a full standalone HTML page injected into an `<iframe>` on the frontend — required for D3.js scripts to execute correctly.
+- No database models — the entire pipeline is stateless.
+
+## Scraper Utils Pipeline
+
+| File | Function | Notes |
+|------|----------|-------|
+| `sitemap.py` | `fetch_sitemap(sitemap_url)` | Handles nested sitemap indexes recursively; hard cap of 100 URLs |
+| `categorizer.py` | `categorize_urls(urls)` | Pattern matching on URL path; edit `PATTERNS` dict to add new categories |
+| `extractor.py` | `extract_links_from_page()` + `extract_all_links()` | Strips `<nav>/<header>/<footer>` to avoid nav link pollution; `ThreadPoolExecutor(max_workers=10)` |
+| `graph_builder.py` | `build_graph_data(categorized, links)` | Auto-generates labels from URL slugs |
+| `html_generator.py` | `generate_html(graph_data, domain)` | f-string template; uses `{{}}` to escape JS braces; computes orphan/inbound/outbound counts in Python |
+
+## Deployment
+
+- **Render** (free tier): auto-deploys from `ashish047r/linkgraph` on push to `main`
+- Start command: `gunicorn linkgraph.wsgi --bind 0.0.0.0:$PORT`
+- Live URL: `https://linkgraph.onrender.com`
+- Free tier sleeps after 15 min inactivity — first request takes ~50s to wake
+
+## Testing the Pipeline
+
+```python
+# In manage.py shell
+from scraper.utils.sitemap import fetch_sitemap
+from scraper.utils.categorizer import categorize_urls
+from scraper.utils.extractor import extract_all_links
+from scraper.utils.graph_builder import build_graph_data
+from scraper.utils.html_generator import generate_html
+from pathlib import Path
+
+urls = fetch_sitemap('https://recharm.com/sitemap.xml')
+categorized = categorize_urls(urls)
+links = extract_all_links(categorized)
+graph = build_graph_data(categorized, links)
+html = generate_html(graph, 'recharm.com')
+Path('/Users/ashish/Desktop/test_graph.html').write_text(html)
+```

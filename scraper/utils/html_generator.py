@@ -93,7 +93,7 @@ linksData.forEach(l => {{
   outDeg[l.source] = (outDeg[l.source] || 0) + 1;
 }});
 
-const nodeRadius = d => Math.min(18, 7 + (inDeg[d.id] || 0) * 1.8);
+const nodeRadius = d => Math.min(32, 6 + (inDeg[d.id] || 0) * 3.5);
 
 const W = 960, H = 720;
 const svg  = d3.select('#g');
