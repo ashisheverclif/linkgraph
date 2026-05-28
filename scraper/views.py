@@ -38,10 +38,6 @@ def generate_view(request):
             return cors_response(JsonResponse({'error': 'No URLs found in sitemap. Check the URL and try again.'}, status=400))
 
         categorized = categorize_urls(urls)
-        total_categorized = sum(len(v) for v in categorized.values())
-        if total_categorized == 0:
-            return cors_response(JsonResponse({'error': 'No blog, feature, compare, or solution pages found in sitemap.'}, status=400))
-
         links  = extract_all_links(categorized)
         graph  = build_graph_data(categorized, links)
         html   = generate_html(graph, sitemap_url)
@@ -49,10 +45,6 @@ def generate_view(request):
         stats = {
             'total_pages': len(graph['nodes']),
             'total_links': len(graph['links']),
-            'blogs':       len(categorized.get('blog', [])),
-            'features':    len(categorized.get('features', [])),
-            'compare':     len(categorized.get('compare', [])),
-            'solutions':   len(categorized.get('solutions', [])),
         }
 
         return cors_response(JsonResponse({'html': html, 'stats': stats}))

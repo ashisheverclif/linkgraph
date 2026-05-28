@@ -8,24 +8,18 @@ def generate_html(graph_data, domain):
     total_nodes = len(graph_data['nodes'])
     total_links = len(graph_data['links'])
 
-    cat_counts = {}
-    for node in graph_data['nodes']:
-        cat_counts[node['cat']] = cat_counts.get(node['cat'], 0) + 1
-
-    in_deg = {}
+    in_deg  = {}
     out_deg = {}
     for node in graph_data['nodes']:
-        in_deg[node['id']] = 0
+        in_deg[node['id']]  = 0
         out_deg[node['id']] = 0
     for l in graph_data['links']:
         in_deg[l['target']]  = in_deg.get(l['target'], 0) + 1
         out_deg[l['source']] = out_deg.get(l['source'], 0) + 1
 
-    orphan_count     = sum(1 for n in graph_data['nodes'] if in_deg[n['id']] == 0 and out_deg[n['id']] == 0)
-    no_inbound_count = sum(1 for n in graph_data['nodes'] if in_deg[n['id']] == 0)
-    no_outbound_count= sum(1 for n in graph_data['nodes'] if out_deg[n['id']] == 0)
-
-
+    orphan_count      = sum(1 for n in graph_data['nodes'] if in_deg[n['id']] == 0 and out_deg[n['id']] == 0)
+    no_inbound_count  = sum(1 for n in graph_data['nodes'] if in_deg[n['id']] == 0 and out_deg[n['id']] > 0)
+    no_outbound_count = sum(1 for n in graph_data['nodes'] if out_deg[n['id']] == 0 and in_deg[n['id']] > 0)
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -38,30 +32,19 @@ def generate_html(graph_data, domain):
   body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 16px 20px 24px; background: #f9f9f7; color: #1a1a18; }}
   h1 {{ font-size: 26px; font-weight: 500; margin: 0 0 3px; }}
   .subtitle {{ font-size: 12px; color: #73726c; margin: 0 0 12px; }}
-  .legend {{ display: flex; flex-wrap: wrap; gap: 5px 14px; margin-bottom: 10px; font-size: 11px; color: #5f5e5a; align-items: center; }}
-  .dot {{ width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 3px; flex-shrink: 0; vertical-align: middle; }}
-  .sq  {{ width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 3px; flex-shrink: 0; vertical-align: middle; }}
-  .stats {{ display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }}
-  .stat {{ background: #f1efe8; border-radius: 8px; padding: 5px 13px; font-size: 11px; color: #5f5e5a; text-align: center; }}
-  .stat b {{ font-size: 26px; font-weight: 500; color: #1a1a18; display: block; }}
-  .stat b.warn {{ color: #D85A30; }}
   .controls {{ display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }}
-  .controls label {{ font-size: 11px; color: #5f5e5a; display: flex; align-items: center; gap: 5px; cursor: pointer; }}
-  .controls input[type=checkbox] {{ cursor: pointer; }}
   .controls button {{ font-size: 11px; padding: 4px 10px; border: 0.5px solid #d3d1c7; border-radius: 6px; background: #fff; cursor: pointer; color: #444; }}
   .controls button:hover {{ background: #f1efe8; }}
-  .controls button.active {{ background: #1a1a18; color: #fff; border-color: #1a1a18; }}
   .fstat {{ background: #f1efe8; border-radius: 8px; padding: 5px 16px; font-size: 11px; color: #5f5e5a; text-align: center; cursor: pointer; border: 0.5px solid transparent; user-select: none; }}
   .fstat:hover {{ background: #e8e6df; }}
   .fstat.active {{ border-color: #1a1a18; }}
   .fstat b {{ font-size: 20px; font-weight: 600; display: block; }}
-
   #wrapper {{ position: relative; }}
   #tt {{
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 0.5px solid #d3d1c7; border-radius: 8px;
     padding: 9px 11px; font-size: 11px; color: #1a1a18;
-    max-width: 250px; z-index: 30; line-height: 1.6;
+    max-width: 260px; z-index: 30; line-height: 1.6;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }}
   svg {{ display: block; border: 0.5px solid #d3d1c7; border-radius: 10px; background: #fff; }}
@@ -71,23 +54,9 @@ def generate_html(graph_data, domain):
 <body>
 
 <h1>{domain} — Internal Link Graph</h1>
-<p class="subtitle">{total_nodes} pages · {total_links} internal links · circles = blogs · squares = site pages</p>
-
-<div class="legend">
-  <span style="font-weight:500;color:#1a1a18;font-size:11px">Blogs</span>
-  <span><span class="dot" style="background:#1D9E75"></span>Blog</span>
-  <span style="font-weight:500;color:#1a1a18;font-size:11px;margin-left:10px">Site pages</span>
-  <span><span class="sq" style="background:#378ADD"></span>Features</span>
-  <span><span class="sq" style="background:#E24B4A"></span>Compare</span>
-  <span><span class="sq" style="background:#9B59B6"></span>Solutions</span>
-</div>
+<p class="subtitle">{total_nodes} pages · {total_links} internal links · node size = inbound links</p>
 
 <div class="controls">
-  <label><input type="checkbox" id="chk-blog" checked> Blogs</label>
-  <label><input type="checkbox" id="chk-features" checked> Features</label>
-  <label><input type="checkbox" id="chk-compare" checked> Compare</label>
-  <label><input type="checkbox" id="chk-solutions" checked> Solutions</label>
-  <span style="width:1px;background:#d3d1c7;align-self:stretch;margin:0 4px"></span>
   <div class="fstat" id="btn-orphan" onclick="filterNodes('orphan')">
     <b style="color:#D85A30">{orphan_count}</b>Orphans
   </div>
@@ -98,7 +67,7 @@ def generate_html(graph_data, domain):
     <b style="color:#9B59B6">{no_outbound_count}</b>No Outbound
   </div>
 </div>
-<div class="controls" style="margin-top:6px">
+<div class="controls" style="margin-top:0">
   <button onclick="resetZoom()">Reset zoom</button>
   <button onclick="reheat()">Reorganise</button>
 </div>
@@ -111,28 +80,20 @@ def generate_html(graph_data, domain):
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script>
-const COLORS = {{
-  blog:      '#1D9E75',
-  features:  '#378ADD',
-  compare:   '#E24B4A',
-  solutions: '#9B59B6',
-}};
+const NODE_COLOR = '#378ADD';
 
 const nodesData = {nodes_json};
 const linksData = {links_json};
 
-const nodeMap  = new Map(nodesData.map(n => [n.id, n]));
-const inDeg    = {{}}, outDeg = {{}};
+const nodeMap = new Map(nodesData.map(n => [n.id, n]));
+const inDeg = {{}}, outDeg = {{}};
 nodesData.forEach(n => {{ inDeg[n.id] = 0; outDeg[n.id] = 0; }});
 linksData.forEach(l => {{
   inDeg[l.target]  = (inDeg[l.target]  || 0) + 1;
   outDeg[l.source] = (outDeg[l.source] || 0) + 1;
 }});
 
-const nodeColor  = n => COLORS[n.cat] || '#888780';
-const nodeRadius = d => d.type === 'blog'
-  ? Math.min(18, 7 + (inDeg[d.id] || 0) * 1.8)
-  : 10;
+const nodeRadius = d => Math.min(18, 7 + (inDeg[d.id] || 0) * 1.8);
 
 const W = 960, H = 720;
 const svg  = d3.select('#g');
@@ -142,7 +103,7 @@ defs.append('marker')
   .attr('id','arr').attr('viewBox','0 0 10 10').attr('refX',9).attr('refY',5)
   .attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto-start-reverse')
   .append('path').attr('d','M2 1L8 5L2 9')
-  .attr('fill','none').attr('stroke','context-stroke')
+  .attr('fill','none').attr('stroke',NODE_COLOR)
   .attr('stroke-width',1.5).attr('stroke-linecap','round').attr('stroke-linejoin','round');
 
 const zoom = d3.zoom().scaleExtent([0.2,4]).on('zoom', e => g.attr('transform', e.transform));
@@ -164,12 +125,11 @@ const sim = d3.forceSimulation(nodesData)
   .alphaDecay(0.03)
   .alphaMin(0.001);
 
-  
 const link = g.append('g').selectAll('line').data(linksData).join('line')
   .attr('fill','none')
+  .attr('stroke', NODE_COLOR)
   .attr('stroke-width', 1)
-  .attr('stroke-opacity', 0.55)
-  .attr('stroke-dasharray', d => nodeMap.get(d.target)?.type !== 'blog' ? '5 3' : 'none')
+  .attr('stroke-opacity', 0.45)
   .attr('marker-end','url(#arr)');
 
 const node = g.append('g').selectAll('g').data(nodesData).join('g').style('cursor','pointer')
@@ -178,17 +138,11 @@ const node = g.append('g').selectAll('g').data(nodesData).join('g').style('curso
     .on('drag', (e,d)=>{{ d.fx=e.x; d.fy=e.y; }})
     .on('end',  (e,d)=>{{ if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; }}));
 
-node.each(function(d) {{
-  const el = d3.select(this);
-  const r  = nodeRadius(d);
-  if (d.type === 'blog') {{
-    el.append('circle').attr('r', r).attr('fill', nodeColor(d)).attr('stroke','#fff').attr('stroke-width',2);
-  }} else {{
-    const s = r * 1.9;
-    el.append('rect').attr('x',-s/2).attr('y',-s/2).attr('width',s).attr('height',s)
-      .attr('rx',4).attr('fill', nodeColor(d)).attr('stroke','#fff').attr('stroke-width',2);
-  }}
-}});
+node.append('circle')
+  .attr('r', d => nodeRadius(d))
+  .attr('fill', NODE_COLOR)
+  .attr('stroke','#fff')
+  .attr('stroke-width',2);
 
 node.append('text')
   .attr('text-anchor','middle').attr('dominant-baseline','hanging')
@@ -203,10 +157,9 @@ const wrapper = document.getElementById('wrapper');
 node.on('mouseenter', (e, d) => {{
   const isOrphan = inDeg[d.id] === 0 && outDeg[d.id] === 0;
   tt.innerHTML = `
-    <span style="background:${{nodeColor(d)}};color:#fff;font-size:9px;padding:1px 6px;border-radius:3px;font-weight:500">${{d.cat.toUpperCase()}}</span><br>
     <span style="font-weight:500;font-size:12px">${{d.label}}</span>
     ${{isOrphan ? '<br><span style="color:#D85A30;font-size:10px">⚠ No internal links</span>' : ''}}
-    <br><span style="color:#888;font-size:10px">${{d.id}}</span>
+    <br><span style="color:#888;font-size:10px;word-break:break-all">${{d.id}}</span>
     <br><span style="font-size:10px;color:#5f5e5a">← in: <b>${{inDeg[d.id]||0}}</b> &nbsp; out: <b>${{outDeg[d.id]||0}}</b> →</span>
   `;
   tt.style.display = 'block';
@@ -215,7 +168,7 @@ node.on('mouseenter', (e, d) => {{
   const wr = wrapper.getBoundingClientRect();
   let x = e.clientX - wr.left + 14;
   let y = e.clientY - wr.top  - 55;
-  if (x + 260 > wr.width) x = e.clientX - wr.left - 270;
+  if (x + 270 > wr.width) x = e.clientX - wr.left - 280;
   if (y < 0)              y = 4;
   tt.style.left = x + 'px';
   tt.style.top  = y + 'px';
@@ -224,52 +177,44 @@ node.on('mouseenter', (e, d) => {{
 
 sim.on('tick', () => {{
   link
-    .attr('stroke', d => nodeColor(nodeMap.get(d.source.id || d.source)))
     .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
     .attr('x2', d => {{
-      const r = nodeRadius(d.target), s = d.target.type !== 'blog' ? r*1.9/2 : r;
+      const r = nodeRadius(d.target);
       const dx = d.target.x - d.source.x, dy = d.target.y - d.source.y;
       const dist = Math.sqrt(dx*dx+dy*dy)||1;
-      return d.target.x - (dx/dist)*(s+8);
+      return d.target.x - (dx/dist)*(r+8);
     }})
     .attr('y2', d => {{
-      const r = nodeRadius(d.target), s = d.target.type !== 'blog' ? r*1.9/2 : r;
+      const r = nodeRadius(d.target);
       const dx = d.target.x - d.source.x, dy = d.target.y - d.source.y;
       const dist = Math.sqrt(dx*dx+dy*dy)||1;
-      return d.target.y - (dy/dist)*(s+8);
+      return d.target.y - (dy/dist)*(r+8);
     }});
   node.attr('transform', d => `translate(${{d.x}},${{d.y}})`);
 }});
 
+const FILTER_COLORS = {{
+  'orphan':      '#D85A30',
+  'no-inbound':  '#378ADD',
+  'no-outbound': '#9B59B6',
+}};
+
 let activeFilter = null;
 
-function getVisible() {{
-  const show = {{
-    blog:      document.getElementById('chk-blog').checked,
-    features:  document.getElementById('chk-features').checked,
-    compare:   document.getElementById('chk-compare').checked,
-    solutions: document.getElementById('chk-solutions').checked,
-  }};
-  return new Set(nodesData.filter(n => show[n.cat]).map(n => n.id));
-}}
-
 function applyVisibility() {{
-  const visible = getVisible();
   if (activeFilter) {{
     const highlighted = new Set(nodesData.filter(d => {{
-      if (!visible.has(d.id)) return false;
       if (activeFilter === 'orphan')      return inDeg[d.id] === 0 && outDeg[d.id] === 0;
-      if (activeFilter === 'no-inbound')  return inDeg[d.id] === 0;
-      if (activeFilter === 'no-outbound') return outDeg[d.id] === 0;
+      if (activeFilter === 'no-inbound')  return inDeg[d.id] === 0 && outDeg[d.id] > 0;
+      if (activeFilter === 'no-outbound') return outDeg[d.id] === 0 && inDeg[d.id] > 0;
     }}).map(d => d.id));
     node.attr('opacity', d => highlighted.has(d.id) ? 1 : 0.08);
+    node.select('circle').attr('fill', d => highlighted.has(d.id) ? FILTER_COLORS[activeFilter] : NODE_COLOR);
     link.attr('opacity', 0.04);
   }} else {{
-    node.attr('opacity', d => visible.has(d.id) ? 1 : 0.08);
-    link.attr('opacity', d => {{
-      const sid = d.source.id || d.source, tid = d.target.id || d.target;
-      return (visible.has(sid) && visible.has(tid)) ? 0.55 : 0.04;
-    }});
+    node.attr('opacity', 1);
+    node.select('circle').attr('fill', NODE_COLOR);
+    link.attr('opacity', 0.45);
   }}
 }}
 
@@ -285,12 +230,6 @@ function filterNodes(type) {{
   applyVisibility();
 }}
 window.filterNodes = filterNodes;
-
-['chk-blog','chk-features','chk-compare','chk-solutions'].forEach(id => {{
-  document.getElementById(id).addEventListener('change', applyVisibility);
-}});
-
-
 </script>
 </body>
 </html>"""
