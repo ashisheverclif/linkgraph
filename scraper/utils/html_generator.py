@@ -39,7 +39,14 @@ def generate_html(graph_data, domain):
   .fstat:hover {{ background: #e8e6df; }}
   .fstat.active {{ border-color: #1a1a18; }}
   .fstat b {{ font-size: 20px; font-weight: 600; display: block; }}
-  #wrapper {{ position: relative; }}
+  #wrapper {{ position: relative; background: #fff; border: 0.5px solid #d3d1c7; border-radius: 10px; overflow: hidden; }}
+  .watermark {{
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-35deg);
+    font-size: 96px; font-weight: 800; white-space: nowrap;
+    pointer-events: none; user-select: none; z-index: 1; line-height: 1;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }}
   #tt {{
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 0.5px solid #d3d1c7; border-radius: 8px;
@@ -47,7 +54,7 @@ def generate_html(graph_data, domain):
     max-width: 260px; z-index: 30; line-height: 1.6;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }}
-  svg {{ display: block; border: 0.5px solid #d3d1c7; border-radius: 10px; background: #fff; }}
+  svg {{ display: block; background: transparent; position: relative; z-index: 2; }}
   .hint {{ font-size: 10px; color: #888780; margin: 6px 0 0; }}
 </style>
 </head>
@@ -73,6 +80,9 @@ def generate_html(graph_data, domain):
 </div>
 
 <div id="wrapper">
+  <div class="watermark">
+    <span style="color:rgba(180,210,240,0.18)">Ever</span><span style="color:rgba(185,182,220,0.18)">Clif↗</span>
+  </div>
   <div id="tt"></div>
   <svg id="g" width="100%" height="720"></svg>
 </div>
