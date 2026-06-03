@@ -40,13 +40,17 @@ def generate_html(graph_data, domain):
   .fstat.active {{ border-color: #1a1a18; }}
   .fstat b {{ font-size: 20px; font-weight: 600; display: block; }}
   #wrapper {{ position: relative; background: #fff; border: 0.5px solid #d3d1c7; border-radius: 10px; overflow: hidden; }}
-  .watermark {{
-    position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%) rotate(-35deg);
-    font-size: 96px; font-weight: 800; white-space: nowrap;
+  .wm {{
+    position: absolute;
+    transform: rotate(-35deg);
+    font-size: 130px; font-weight: 800; white-space: nowrap;
     pointer-events: none; user-select: none; z-index: 1; line-height: 1;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    opacity: 0.22;
   }}
+  .wm1 {{ top: 2%;  left: -5%; }}
+  .wm2 {{ top: 32%; left: 20%; }}
+  .wm3 {{ top: 62%; left: 45%; }}
   #tt {{
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 0.5px solid #d3d1c7; border-radius: 8px;
@@ -80,9 +84,9 @@ def generate_html(graph_data, domain):
 </div>
 
 <div id="wrapper">
-  <div class="watermark">
-    <span style="color:rgba(180,210,240,0.18)">Ever</span><span style="color:rgba(185,182,220,0.18)">Clif↗</span>
-  </div>
+  <div class="wm wm1"><span style="color:#bcd8f0">Ever</span><span style="color:#b8b4d8">Clif↗</span></div>
+  <div class="wm wm2"><span style="color:#bcd8f0">Ever</span><span style="color:#b8b4d8">Clif↗</span></div>
+  <div class="wm wm3"><span style="color:#bcd8f0">Ever</span><span style="color:#b8b4d8">Clif↗</span></div>
   <div id="tt"></div>
   <svg id="g" width="100%" height="720"></svg>
 </div>
