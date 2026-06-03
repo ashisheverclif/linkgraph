@@ -81,6 +81,7 @@ def generate_html(graph_data, domain):
 <div class="controls" style="margin-top:0">
   <button onclick="resetZoom()">Reset zoom</button>
   <button onclick="reheat()">Reorganise</button>
+  <button id="btn-reset-filter" onclick="clearFilter()" style="display:none">Clear filter</button>
 </div>
 
 <div id="wrapper">
@@ -241,9 +242,18 @@ function filterNodes(type) {{
     document.querySelectorAll('#btn-orphan,#btn-no-inbound,#btn-no-outbound').forEach(b => b.classList.remove('active'));
     document.getElementById('btn-' + type).classList.add('active');
   }}
+  document.getElementById('btn-reset-filter').style.display = activeFilter ? 'inline-block' : 'none';
   applyVisibility();
 }}
 window.filterNodes = filterNodes;
+
+function clearFilter() {{
+  activeFilter = null;
+  document.querySelectorAll('#btn-orphan,#btn-no-inbound,#btn-no-outbound').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-reset-filter').style.display = 'none';
+  applyVisibility();
+}}
+window.clearFilter = clearFilter;
 </script>
 </body>
 </html>"""
