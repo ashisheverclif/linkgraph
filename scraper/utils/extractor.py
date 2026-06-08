@@ -1,7 +1,24 @@
+import html
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
+def _collect_links(content, url, base_domain, all_categorized_urls):
+    found_links = []
+    for a_tag in content.find_all('a', href=True):
+        href = a_tag['href'].strip()
+        absolute = urljoin(url, href)
+        parsed = urlparse(absolute)
+
+        if parsed.netloc.replace('www.', '') != base_domain.replace('www.', ''):
+            continue
+
+        normalized = absolute.rstrip('/')
+        if normalized in all_categorized_urls and normalized != url.rstrip('/'):
+            found_links.append(normalized)
+    return found_links
 
 
 def extract_links_from_page(url, all_categorized_urls):
@@ -25,18 +42,13 @@ def extract_links_from_page(url, all_categorized_urls):
     if not content:
         return []
 
-    found_links = []
-    for a_tag in content.find_all('a', href=True):
-        href = a_tag['href'].strip()
-        absolute = urljoin(url, href)
-        parsed = urlparse(absolute)
+    found_links = _collect_links(content, url, base_domain, all_categorized_urls)
 
-        if parsed.netloc.replace('www.', '') != base_domain.replace('www.', ''):
-            continue
-
-        normalized = absolute.rstrip('/')
-        if normalized in all_categorized_urls and normalized != url.rstrip('/'):
-            found_links.append(normalized)
+    # Handle Framer-style pages where content is inside <iframe srcdoc="...">
+    for iframe in content.find_all('iframe', srcdoc=True):
+        srcdoc_html = html.unescape(iframe['srcdoc'])
+        inner_soup = BeautifulSoup(srcdoc_html, 'lxml')
+        found_links.extend(_collect_links(inner_soup, url, base_domain, all_categorized_urls))
 
     return list(set(found_links))
 
