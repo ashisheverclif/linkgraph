@@ -2,6 +2,11 @@ from urllib.parse import urlparse
 
 
 def build_graph_data(categorized_urls, links):
+    url_to_category = {}
+    for category, pages in categorized_urls.items():
+        for url in pages:
+            url_to_category[url.rstrip('/')] = category
+
     def make_label(url):
         path = urlparse(url).path.rstrip('/')
         slug = path.split('/')[-1]
@@ -10,7 +15,7 @@ def build_graph_data(categorized_urls, links):
     nodes = []
     seen_ids = set()
 
-    for pages in categorized_urls.values():
+    for category, pages in categorized_urls.items():
         for url in pages:
             node_id = url.rstrip('/')
             if node_id in seen_ids:
@@ -19,6 +24,7 @@ def build_graph_data(categorized_urls, links):
             nodes.append({
                 'id':    node_id,
                 'label': make_label(url),
+                'cat':   category,
             })
 
     filtered_links = [

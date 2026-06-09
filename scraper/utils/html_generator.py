@@ -35,6 +35,8 @@ def generate_html(graph_data, domain):
   .controls {{ display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }}
   .controls button {{ font-size: 11px; padding: 4px 10px; border: 0.5px solid #d3d1c7; border-radius: 6px; background: #fff; cursor: pointer; color: #444; }}
   .controls button:hover {{ background: #f1efe8; }}
+  .controls label {{ font-size: 11px; color: #5f5e5a; display: flex; align-items: center; gap: 5px; cursor: pointer; }}
+  .controls input[type=checkbox] {{ cursor: pointer; }}
   .fstat {{ background: #f1efe8; border-radius: 8px; padding: 5px 16px; font-size: 11px; color: #5f5e5a; text-align: center; cursor: pointer; border: 0.5px solid transparent; user-select: none; }}
   .fstat:hover {{ background: #e8e6df; }}
   .fstat.active {{ border-color: #1a1a18; }}
@@ -66,6 +68,12 @@ def generate_html(graph_data, domain):
 <p class="subtitle">{total_nodes} pages · {total_links} internal links · node size = inbound links</p>
 
 <div class="controls">
+  <label><input type="checkbox" id="chk-blog" checked> <span style="color:#1D9E75;font-weight:500">Blog</span></label>
+  <label><input type="checkbox" id="chk-features" checked> <span style="color:#378ADD;font-weight:500">Features</span></label>
+  <label><input type="checkbox" id="chk-compare" checked> <span style="color:#E24B4A;font-weight:500">Compare</span></label>
+  <label><input type="checkbox" id="chk-solutions" checked> <span style="color:#9B59B6;font-weight:500">Solutions</span></label>
+  <label><input type="checkbox" id="chk-other" checked> <span style="color:#888780;font-weight:500">Other</span></label>
+  <span style="width:1px;background:#d3d1c7;align-self:stretch;margin:0 4px"></span>
   <div class="fstat" id="btn-orphan" onclick="filterNodes('orphan')">
     <b style="color:#D85A30">{orphan_count}</b>Orphans
   </div>
@@ -91,7 +99,14 @@ def generate_html(graph_data, domain):
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script>
-const NODE_COLOR = '#378ADD';
+const COLORS = {{
+  blog:      '#1D9E75',
+  features:  '#378ADD',
+  compare:   '#E24B4A',
+  solutions: '#9B59B6',
+  other:     '#888780',
+}};
+const nodeColor = d => COLORS[d.cat] || '#888780';
 
 const nodesData = {nodes_json};
 const linksData = {links_json};
@@ -114,7 +129,7 @@ defs.append('marker')
   .attr('id','arr').attr('viewBox','0 0 10 10').attr('refX',9).attr('refY',5)
   .attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto-start-reverse')
   .append('path').attr('d','M2 1L8 5L2 9')
-  .attr('fill','none').attr('stroke',NODE_COLOR)
+  .attr('fill','none').attr('stroke','#94a3b8')
   .attr('stroke-width',1.5).attr('stroke-linecap','round').attr('stroke-linejoin','round');
 
 const zoom = d3.zoom().scaleExtent([0.2,4]).on('zoom', e => g.attr('transform', e.transform));
@@ -138,7 +153,7 @@ const sim = d3.forceSimulation(nodesData)
 
 const link = g.append('g').selectAll('line').data(linksData).join('line')
   .attr('fill','none')
-  .attr('stroke', NODE_COLOR)
+  .attr('stroke', '#94a3b8')
   .attr('stroke-width', 1)
   .attr('stroke-opacity', 0.45)
   .attr('marker-end','url(#arr)');
@@ -151,7 +166,7 @@ const node = g.append('g').selectAll('g').data(nodesData).join('g').style('curso
 
 node.append('circle')
   .attr('r', d => nodeRadius(d))
-  .attr('fill', NODE_COLOR)
+  .attr('fill', d => nodeColor(d))
   .attr('stroke','#fff')
   .attr('stroke-width',2);
 
@@ -168,6 +183,7 @@ const wrapper = document.getElementById('wrapper');
 node.on('mouseenter', (e, d) => {{
   const isOrphan = inDeg[d.id] === 0 && outDeg[d.id] === 0;
   tt.innerHTML = `
+    <span style="background:${{nodeColor(d)}};color:#fff;font-size:9px;padding:1px 6px;border-radius:3px;font-weight:500">${{d.cat.toUpperCase()}}</span><br>
     <span style="font-weight:500;font-size:12px">${{d.label}}</span>
     ${{isOrphan ? '<br><span style="color:#D85A30;font-size:10px">⚠ No internal links</span>' : ''}}
     <br><span style="color:#888;font-size:10px;word-break:break-all">${{d.id}}</span>
@@ -212,20 +228,32 @@ const FILTER_COLORS = {{
 
 let activeFilter = null;
 
+function getVisible() {{
+  return new Set(nodesData.filter(n => {{
+    const el = document.getElementById('chk-' + n.cat);
+    return el ? el.checked : true;
+  }}).map(n => n.id));
+}}
+
 function applyVisibility() {{
+  const visible = getVisible();
   if (activeFilter) {{
     const highlighted = new Set(nodesData.filter(d => {{
+      if (!visible.has(d.id)) return false;
       if (activeFilter === 'orphan')      return inDeg[d.id] === 0 && outDeg[d.id] === 0;
       if (activeFilter === 'no-inbound')  return inDeg[d.id] === 0 && outDeg[d.id] > 0;
       if (activeFilter === 'no-outbound') return outDeg[d.id] === 0 && inDeg[d.id] > 0;
     }}).map(d => d.id));
     node.attr('opacity', d => highlighted.has(d.id) ? 1 : 0.08);
-    node.select('circle').attr('fill', d => highlighted.has(d.id) ? FILTER_COLORS[activeFilter] : NODE_COLOR);
+    node.select('circle').attr('fill', d => highlighted.has(d.id) ? FILTER_COLORS[activeFilter] : nodeColor(d));
     link.attr('opacity', 0.04);
   }} else {{
-    node.attr('opacity', 1);
-    node.select('circle').attr('fill', NODE_COLOR);
-    link.attr('opacity', 0.45);
+    node.attr('opacity', d => visible.has(d.id) ? 1 : 0.08);
+    node.select('circle').attr('fill', d => nodeColor(d));
+    link.attr('opacity', d => {{
+      const sid = d.source.id || d.source, tid = d.target.id || d.target;
+      return (visible.has(sid) && visible.has(tid)) ? 0.45 : 0.04;
+    }});
   }}
 }}
 
@@ -250,6 +278,11 @@ function clearFilter() {{
   applyVisibility();
 }}
 window.clearFilter = clearFilter;
+
+['chk-blog','chk-features','chk-compare','chk-solutions','chk-other'].forEach(id => {{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', applyVisibility);
+}});
 </script>
 </body>
 </html>"""
