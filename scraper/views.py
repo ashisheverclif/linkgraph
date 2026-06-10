@@ -24,10 +24,10 @@ def generate_view(request):
         body = json.loads(request.body)
         sitemap_url = body.get('sitemap_url', '').strip()
     except Exception:
-        return JsonResponse({'error': 'Invalid request body.'}, status=400)
+        return cors_response(JsonResponse({'error': 'Invalid request body.'}, status=400))
 
     if not sitemap_url:
-        return JsonResponse({'error': 'sitemap_url is required.'}, status=400)
+        return cors_response(JsonResponse({'error': 'sitemap_url is required.'}, status=400))
 
     if not sitemap_url.startswith('http'):
         return cors_response(JsonResponse({'error': 'sitemap_url must start with http or https.'}, status=400))
