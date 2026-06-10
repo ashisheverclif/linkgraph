@@ -1,12 +1,30 @@
 import json
+import os
+from datetime import datetime, timezone
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+import requests as http_requests
 
 from .utils.sitemap import fetch_sitemap
 from .utils.categorizer import categorize_urls
 from .utils.extractor import extract_all_links
 from .utils.graph_builder import build_graph_data
 from .utils.html_generator import generate_html
+
+
+def log_to_sheet(sitemap_url, pages, links):
+    webhook = os.environ.get('SHEETS_WEBHOOK_URL')
+    if not webhook:
+        return
+    try:
+        http_requests.post(webhook, json={
+            'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
+            'sitemap_url': sitemap_url,
+            'pages': pages,
+            'links': links,
+        }, timeout=5)
+    except Exception:
+        pass
 
 
 def cors_response(response):
@@ -47,6 +65,7 @@ def generate_view(request):
             'total_links': len(graph['links']),
         }
 
+        log_to_sheet(sitemap_url, stats['total_pages'], stats['total_links'])
         return cors_response(JsonResponse({'html': html, 'stats': stats}))
 
     except Exception as e:
