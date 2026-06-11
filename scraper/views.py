@@ -53,7 +53,7 @@ def generate_view(request):
     try:
         urls = fetch_sitemap(sitemap_url)
         if not urls:
-            return cors_response(JsonResponse({'error': 'No URLs found in sitemap. Check the URL and try again.'}, status=400))
+            return cors_response(JsonResponse({'error': 'Could not fetch sitemap. The site may be blocking automated requests (common on large enterprise or university sites). Try a different sitemap URL.'}, status=400))
 
         categorized = categorize_urls(urls)
         links  = extract_all_links(categorized)
